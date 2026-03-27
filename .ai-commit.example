@@ -1,0 +1,9 @@
+{
+  "provider": "gemini",
+  "format": "conventional",
+  "language": "en",
+  "autoCommit": false,
+  "autoPush": false,
+  "stagedOnly": true,
+  "includeBlame": false
+}

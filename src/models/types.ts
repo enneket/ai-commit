@@ -3,16 +3,28 @@ export type CommitFormat = 'conventional' | 'angular' | 'karma' | 'semantic' | '
 export type Language = 'en' | 'zh' | 'ja' | 'ru' | 'es' | 'pt';
 
 export type AIProvider =
-  | 'gemini'
   | 'openai'
-  | 'azure-openai'
   | 'anthropic'
-  | 'cohere'
-  | 'ollama'
-  | 'lm-studio'
+  | 'google'
+  | 'mistral'
+  | 'moonshot'
+  | 'zhipu'
+  | 'minimax'
   | 'groq'
+  | 'cerebras'
+  | 'deepinfra'
+  | 'xai'
+  | 'cohere'
+  | 'perplexity'
+  | 'ollama'
+  | 'lmstudio'
+  | 'alibailian'
+  | 'byteplus'
   | 'deepseek'
-  | 'mistral';
+  | 'openrouter'
+  | 'vercel'
+  | 'bedrock'
+  | 'opencode';
 
 export interface CommitMessage {
   format: CommitFormat;

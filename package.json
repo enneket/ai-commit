@@ -34,8 +34,12 @@
     "commands": [
       {
         "command": "ai-commit.generate",
-        "title": "AI Commit: Generate Commit Message",
-        "category": "AI Commit"
+        "title": "AI Commit",
+        "category": "AI Commit",
+        "icon": {
+          "light": "./icons/button-light.svg",
+          "dark": "./icons/button-dark.svg"
+        }
       },
       {
         "command": "ai-commit.setApiKey",
@@ -48,13 +52,28 @@
         "category": "AI Commit"
       }
     ],
+    "menus": {
+      "scm/title": [
+        {
+          "when": "scmProvider == git",
+          "command": "ai-commit.generate",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "ai-commit.generate",
+          "when": "workspaceFolderCount != 0"
+        }
+      ]
+    },
     "configuration": {
       "title": "AI Commit",
       "properties": {
         "ai-commit.provider": {
           "type": "string",
-          "enum": ["gemini", "openai", "azure-openai", "anthropic", "cohere", "ollama", "lm-studio", "groq", "deepseek", "mistral"],
-          "default": "gemini",
+          "enum": ["openai", "anthropic", "google", "mistral", "moonshot", "zhipu", "minimax", "groq", "cerebras", "deepinfra", "xai", "cohere", "perplexity", "ollama", "lmstudio", "alibailian", "byteplus", "deepseek", "openrouter", "vercel", "bedrock", "opencode"],
+          "default": "openai",
           "description": "AI provider to use"
         },
         "ai-commit.format": {
@@ -91,7 +110,7 @@
         "command": "ai-commit.generate",
         "key": "ctrl+g",
         "mac": "cmd+g",
-        "when": "editorTextFocus"
+        "when": "scmProvider == git"
       }
     ]
   }

@@ -30,7 +30,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 async function generateCommitMessage(configService: ConfigService) {
   const config = vscode.workspace.getConfiguration('ai-commit');
-  const provider = config.get<AIProvider>('provider', 'gemini');
+  const provider = config.get<AIProvider>('provider', 'openai');
   const format = config.get<CommitFormat>('format', 'conventional');
   const language = config.get<Language>('language', 'en');
   const autoCommit = config.get<boolean>('autoCommit', false);
@@ -139,14 +139,28 @@ async function getGitDiff(repo: any, stagedOnly: boolean): Promise<GitDiff> {
 
 // Provider mapping for display
 const PROVIDERS: { label: string; value: AIProvider }[] = [
-  { label: 'Gemini', value: 'gemini' },
   { label: 'OpenAI', value: 'openai' },
-  { label: 'Azure OpenAI', value: 'azure-openai' },
   { label: 'Anthropic', value: 'anthropic' },
-  { label: 'Cohere', value: 'cohere' },
-  { label: 'Groq', value: 'groq' },
-  { label: 'DeepSeek', value: 'deepseek' },
+  { label: 'Google (Gemini)', value: 'google' },
   { label: 'Mistral', value: 'mistral' },
+  { label: 'Moonshot (Kimi)', value: 'moonshot' },
+  { label: 'Zhipu (智谱)', value: 'zhipu' },
+  { label: 'MiniMax', value: 'minimax' },
+  { label: 'Groq', value: 'groq' },
+  { label: 'Cerebras', value: 'cerebras' },
+  { label: 'DeepInfra', value: 'deepinfra' },
+  { label: 'xAI', value: 'xai' },
+  { label: 'Cohere', value: 'cohere' },
+  { label: 'Perplexity', value: 'perplexity' },
+  { label: 'Ollama', value: 'ollama' },
+  { label: 'LM Studio', value: 'lmstudio' },
+  { label: '阿里云百炼', value: 'alibailian' },
+  { label: 'BytePlus', value: 'byteplus' },
+  { label: 'DeepSeek', value: 'deepseek' },
+  { label: 'OpenRouter', value: 'openrouter' },
+  { label: 'Vercel AI', value: 'vercel' },
+  { label: 'AWS Bedrock', value: 'bedrock' },
+  { label: 'OpenCode', value: 'opencode' },
 ];
 
 async function promptSetApiKey() {

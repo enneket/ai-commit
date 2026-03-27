@@ -5,7 +5,7 @@ import { APIError } from '../../models/errors.js';
 const LMSTUDIO_BASE_URL = 'http://localhost:1234';
 
 export class LMStudioService extends BaseAIService {
-  readonly provider: AIProvider = 'lm-studio';
+  readonly provider: AIProvider = 'lmstudio';
   readonly defaultModel = 'local-model';
 
   constructor(options: { apiKey?: string; baseUrl?: string; model?: string }) {

@@ -1,14 +1,26 @@
 export const SUPPORTED_PROVIDERS = [
-  'gemini',
   'openai',
-  'azure-openai',
   'anthropic',
-  'cohere',
-  'ollama',
-  'lm-studio',
-  'groq',
-  'deepseek',
+  'google',
   'mistral',
+  'moonshot',
+  'zhipu',
+  'minimax',
+  'groq',
+  'cerebras',
+  'deepinfra',
+  'xai',
+  'cohere',
+  'perplexity',
+  'ollama',
+  'lmstudio',
+  'alibailian',
+  'byteplus',
+  'deepseek',
+  'openrouter',
+  'vercel',
+  'bedrock',
+  'opencode',
 ] as const;
 
 export const SUPPORTED_FORMATS = ['conventional', 'angular', 'karma', 'semantic', 'emoji'] as const;
@@ -17,7 +29,7 @@ export const SUPPORTED_LANGUAGES = ['en', 'zh', 'ja', 'ru', 'es', 'pt'] as const
 
 export const DEFAULT_FORMAT = 'conventional';
 export const DEFAULT_LANGUAGE = 'en';
-export const DEFAULT_PROVIDER = 'gemini';
+export const DEFAULT_PROVIDER = 'openai';
 
 export const LANGUAGE_NAMES: Record<string, string> = {
   en: 'English',

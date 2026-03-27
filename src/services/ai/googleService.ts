@@ -2,10 +2,10 @@ import { BaseAIService, type AIResponse } from './baseAIService.js';
 import type { AIProvider } from '../../models/types.js';
 import { APIError } from '../../models/errors.js';
 
-const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
+const GOOGLE_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
 
-export class GeminiService extends BaseAIService {
-  readonly provider: AIProvider = 'gemini';
+export class GoogleService extends BaseAIService {
+  readonly provider: AIProvider = 'google';
   readonly defaultModel = 'gemini-2.0-flash';
 
   constructor(options: { apiKey?: string; baseUrl?: string; model?: string }) {
@@ -14,10 +14,10 @@ export class GeminiService extends BaseAIService {
 
   async generate(systemPrompt: string, userPrompt: string): Promise<AIResponse> {
     if (!this.apiKey) {
-      throw new APIError('Gemini API key is required');
+      throw new APIError('Google API key is required');
     }
 
-    const url = `${GEMINI_BASE_URL}/models/${this.model}:generateContent?key=${this.apiKey}`;
+    const url = `${GOOGLE_BASE_URL}/models/${this.model}:generateContent?key=${this.apiKey}`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -34,22 +34,25 @@ export class GeminiService extends BaseAIService {
     });
 
     if (!response.ok) {
-      throw new APIError(`Gemini API error: ${response.statusText}`, response.status);
+      throw new APIError(`Google API error: ${response.statusText}`, response.status);
     }
 
-    const data = await response.json() as any;
+    const data = await response.json() as {
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; totalTokenCount?: number };
+    };
 
     if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-      throw new APIError('Invalid Gemini response structure');
+      throw new APIError('Invalid Google API response structure');
     }
 
     return {
-      content: data.candidates[0].content.parts[0].text,
+      content: data.candidates[0].content.parts[0].text || '',
       usage: data.usageMetadata
         ? {
-            promptTokens: data.usageMetadata.promptTokenCount,
-            completionTokens: data.usageMetadata.candidatesTokenCount,
-            totalTokens: data.usageMetadata.totalTokenCount,
+            promptTokens: data.usageMetadata.promptTokenCount || 0,
+            completionTokens: data.usageMetadata.candidatesTokenCount || 0,
+            totalTokens: data.usageMetadata.totalTokenCount || 0,
           }
         : undefined,
     };

@@ -49,7 +49,6 @@ export class ConfigService {
     if (path.endsWith('.json')) {
       return JSON.parse(content);
     }
-    // For YAML, would need js-yaml - simplified for now
     throw new ConfigError(`Unsupported config format: ${path}`);
   }
 
@@ -68,24 +67,40 @@ export class ConfigService {
 
   getApiKey(provider: AIProvider): string | undefined {
     const envVars: Record<string, string | undefined> = {
-      gemini: process.env.GEMINI_API_KEY,
       openai: process.env.OPENAI_API_KEY,
-      'azure-openai': process.env.AZURE_OPENAI_API_KEY,
       anthropic: process.env.ANTHROPIC_API_KEY,
-      cohere: process.env.COHERE_API_KEY,
-      groq: process.env.GROQ_API_KEY,
-      deepseek: process.env.DEEPSEEK_API_KEY,
+      google: process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY,
       mistral: process.env.MISTRAL_API_KEY,
+      moonshot: process.env.MOONSHOT_API_KEY,
+      zhipu: process.env.ZHIPU_API_KEY,
+      minimax: process.env.MINIMAX_API_KEY,
+      groq: process.env.GROQ_API_KEY,
+      cerebras: process.env.CEREBRAS_API_KEY,
+      deepinfra: process.env.DEEPINFRA_API_KEY,
+      xai: process.env.XAI_API_KEY,
+      cohere: process.env.COHERE_API_KEY,
+      perplexity: process.env.PERPLEXITY_API_KEY,
+      ollama: process.env.OLLAMA_API_KEY,
+      lmstudio: process.env.LMSTUDIO_API_KEY,
+      alibailian: process.env.ALIBABAILIAN_API_KEY || process.env.QIANWEN_API_KEY,
+      byteplus: process.env.BYTEPLUS_API_KEY,
+      deepseek: process.env.DEEPSEEK_API_KEY,
+      openrouter: process.env.OPENROUTER_API_KEY,
+      vercel: process.env.VERCEL_API_KEY,
+      bedrock: process.env.AWS_ACCESS_KEY_ID,
+      opencode: process.env.OPENCODE_API_KEY,
     };
 
-    return envVars[provider] || process.env.OPENAI_API_KEY; // fallback to OPENAI
+    return envVars[provider];
   }
 
   getBaseUrl(provider: AIProvider): string | undefined {
     const baseUrls: Record<string, string | undefined> = {
-      'azure-openai': process.env.AZURE_OPENAI_ENDPOINT,
       ollama: process.env.OLLAMA_BASE_URL,
-      'lm-studio': process.env.LMSTUDIO_BASE_URL,
+      lmstudio: process.env.LMSTUDIO_BASE_URL,
+      openrouter: process.env.OPENROUTER_BASE_URL,
+      vercel: process.env.VERCEL_BASE_URL,
+      alibailian: process.env.ALIBABAILIAN_BASE_URL || process.env.QIANWEN_BASE_URL,
     };
 
     return baseUrls[provider];

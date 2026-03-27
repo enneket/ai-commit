@@ -4,20 +4,19 @@ import { BlameAnalyzer } from './services/git/blameAnalyzer.js';
 import { ConfigService } from './services/config/configService.js';
 import type { AIProvider, CommitFormat, Language, GitDiff, BlameInfo } from './models/types.js';
 
-// Store API keys in extension global state
-const apiKeys: Map<string, string> = new Map();
+const SECRET_KEY_PREFIX = 'ai-commit-api-key-';
 
 export function activate(context: vscode.ExtensionContext) {
   const configService = new ConfigService();
 
   // Register generate command
   const generateDisposable = vscode.commands.registerCommand('ai-commit.generate', async () => {
-    await generateCommitMessage(configService);
+    await generateCommitMessage(context, configService);
   });
 
   // Register set API key command
   const setApiKeyDisposable = vscode.commands.registerCommand('ai-commit.setApiKey', async () => {
-    await promptSetApiKey();
+    await promptSetApiKey(context);
   });
 
   // Register config command
@@ -28,14 +27,45 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(generateDisposable, setApiKeyDisposable, configDisposable);
 }
 
-async function generateCommitMessage(configService: ConfigService) {
+async function getApiKey(context: vscode.ExtensionContext, provider: AIProvider, configService: ConfigService): Promise<string | undefined> {
+  // First check in-memory cache
+  const cachedKey = context.globalState.get<string>(`${SECRET_KEY_PREFIX}${provider}`);
+  if (cachedKey) {
+    return cachedKey;
+  }
+
+  // Check environment variable via configService
+  const envKey = configService.getApiKey(provider);
+  if (envKey) {
+    // Cache it
+    await context.globalState.update(`${SECRET_KEY_PREFIX}${provider}`, envKey);
+    return envKey;
+  }
+
+  return undefined;
+}
+
+async function saveApiKey(context: vscode.ExtensionContext, provider: AIProvider, key: string): Promise<void> {
+  await context.globalState.update(`${SECRET_KEY_PREFIX}${provider}`, key);
+}
+
+async function generateCommitMessage(context: vscode.ExtensionContext, configService: ConfigService) {
   const config = vscode.workspace.getConfiguration('ai-commit');
   const provider = config.get<AIProvider>('provider', 'openai');
   const format = config.get<CommitFormat>('format', 'conventional');
   const language = config.get<Language>('language', 'en');
-  const autoCommit = config.get<boolean>('autoCommit', false);
   const stagedOnly = config.get<boolean>('stagedOnly', true);
   const includeBlame = config.get<boolean>('includeBlame', false);
+
+  // Check if API key is configured, if not prompt for it
+  const apiKey = await getApiKey(context, provider, configService);
+  if (!apiKey) {
+    await promptSetApiKey(context);
+    const newApiKey = await getApiKey(context, provider, configService);
+    if (!newApiKey) {
+      return; // User cancelled
+    }
+  }
 
   // Check if git extension is available
   const gitExtension = vscode.extensions.getExtension('vscode.git');
@@ -59,7 +89,7 @@ async function generateCommitMessage(configService: ConfigService) {
       {
         location: vscode.ProgressLocation.Notification,
         title: 'AI Commit',
-        cancellable: false,
+        cancellable: true,
       },
       async (progress) => {
         progress.report({ message: 'Analyzing git changes...' });
@@ -75,10 +105,10 @@ async function generateCommitMessage(configService: ConfigService) {
           blameInfos = blameAnalyzer.getChangedFilesBlame(stagedOnly);
         }
 
-        // Get API key from stored keys or environment
-        const apiKey = apiKeys.get(provider) || configService.getApiKey(provider);
-        if (!apiKey) {
-          vscode.window.showInformationMessage(`Please set your ${provider} API key using "AI Commit: Set API Key" command`);
+        // Get API key (check cache again in case it was just set)
+        const finalApiKey = await getApiKey(context, provider, configService);
+        if (!finalApiKey) {
+          vscode.window.showErrorMessage(`Please set your ${provider} API key first`);
           return;
         }
 
@@ -92,27 +122,17 @@ async function generateCommitMessage(configService: ConfigService) {
           language,
           diff,
           blameInfos,
-          apiKey,
+          apiKey: finalApiKey,
           baseUrl,
         });
 
         progress.report({ message: 'Done!' });
 
         // Set the commit message in the Git input box
-        repo.inputBox.value = message;
-
-        // Show notification with options
-        const selection = await vscode.window.showInformationMessage(
-          'Commit message filled in Git input box.',
-          'Copy',
-          'Commit Now'
-        );
-
-        if (selection === 'Copy') {
-          await vscode.env.clipboard.writeText(message);
-        } else if (selection === 'Commit Now') {
-          await repo.commit(message);
-          vscode.window.showInformationMessage('Committed!');
+        if (message) {
+          repo.inputBox.value = message;
+        } else {
+          vscode.window.showErrorMessage('Failed to generate commit message');
         }
       }
     );
@@ -163,11 +183,19 @@ const PROVIDERS: { label: string; value: AIProvider }[] = [
   { label: 'OpenCode', value: 'opencode' },
 ];
 
-async function promptSetApiKey() {
-  const items = PROVIDERS.map(p => ({ label: p.label, provider: p.value }));
+async function promptSetApiKey(context: vscode.ExtensionContext) {
+  const config = vscode.workspace.getConfiguration('ai-commit');
+  const currentProvider = config.get<AIProvider>('provider', 'openai');
+
+  const items = PROVIDERS.map(p => ({
+    label: p.label,
+    provider: p.value,
+    picked: p.value === currentProvider
+  }));
 
   const selected = await vscode.window.showQuickPick(items, {
     placeHolder: 'Select AI provider',
+    matchOnDescription: true,
   });
 
   if (!selected) {
@@ -181,7 +209,7 @@ async function promptSetApiKey() {
   });
 
   if (apiKey) {
-    apiKeys.set(selected.provider, apiKey);
+    await saveApiKey(context, selected.provider, apiKey);
     vscode.window.showInformationMessage(`API key saved for ${selected.label}`);
   }
 }
@@ -192,7 +220,6 @@ async function showConfig() {
     `Provider: ${config.get('provider')}`,
     `Format: ${config.get('format')}`,
     `Language: ${config.get('language')}`,
-    `Auto Commit: ${config.get('autoCommit')}`,
     `Staged Only: ${config.get('stagedOnly')}`,
     `Include Blame: ${config.get('includeBlame')}`,
   ];
@@ -203,8 +230,3 @@ async function showConfig() {
 }
 
 export function deactivate() {}
-
-// Export for external access - allows setting API key programmatically
-export function setProviderApiKey(provider: AIProvider, key: string): void {
-  apiKeys.set(provider, key);
-}

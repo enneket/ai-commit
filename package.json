@@ -1,29 +1,97 @@
 {
   "name": "ai-commit",
   "version": "0.1.0",
-  "description": "AI-powered commit message generator",
-  "type": "module",
-  "bin": {
-    "ai-commit": "./dist/cli.js"
+  "description": "AI-powered commit message generator for VS Code",
+  "categories": ["Other"],
+  "activationEvents": [
+    "onCommand:ai-commit.generate",
+    "onCommand:ai-commit.setApiKey",
+    "onCommand:ai-commit.config"
+  ],
+  "engines": {
+    "vscode": "^1.85.0"
   },
+  "main": "./dist/extension.js",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "dev": "tsx src/cli.ts"
+    "vscode:prepublish": "npm run build"
   },
   "dependencies": {
-    "commander": "^12.0.0",
     "zod": "^3.22.0",
-    "chalk": "^5.3.0",
-    "ora": "^8.0.0",
-    "inquirer": "^10.0.0"
+    "chalk": "^5.3.0"
   },
   "devDependencies": {
-    "typescript": "^5.4.0",
+    "@types/vscode": "^1.85.0",
     "@types/node": "^20.0.0",
+    "typescript": "^5.4.0",
     "vitest": "^1.4.0",
     "@vitest/coverage-v8": "^1.4.0",
-    "tsx": "^4.7.0"
+    "@vscode/test-electron": "^2.3.0"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "ai-commit.generate",
+        "title": "AI Commit: Generate Commit Message",
+        "category": "AI Commit"
+      },
+      {
+        "command": "ai-commit.setApiKey",
+        "title": "AI Commit: Set API Key",
+        "category": "AI Commit"
+      },
+      {
+        "command": "ai-commit.config",
+        "title": "AI Commit: Configuration",
+        "category": "AI Commit"
+      }
+    ],
+    "configuration": {
+      "title": "AI Commit",
+      "properties": {
+        "ai-commit.provider": {
+          "type": "string",
+          "enum": ["gemini", "openai", "azure-openai", "anthropic", "cohere", "ollama", "lm-studio", "groq", "deepseek", "mistral"],
+          "default": "gemini",
+          "description": "AI provider to use"
+        },
+        "ai-commit.format": {
+          "type": "string",
+          "enum": ["conventional", "angular", "karma", "semantic", "emoji"],
+          "default": "conventional",
+          "description": "Commit message format"
+        },
+        "ai-commit.language": {
+          "type": "string",
+          "enum": ["en", "zh", "ja", "ru", "es", "pt"],
+          "default": "en",
+          "description": "Language for commit message"
+        },
+        "ai-commit.autoCommit": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically commit after generation"
+        },
+        "ai-commit.stagedOnly": {
+          "type": "boolean",
+          "default": true,
+          "description": "Only use staged changes"
+        },
+        "ai-commit.includeBlame": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include git blame analysis"
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "ai-commit.generate",
+        "key": "ctrl+g",
+        "mac": "cmd+g",
+        "when": "editorTextFocus"
+      }
+    ]
   }
 }

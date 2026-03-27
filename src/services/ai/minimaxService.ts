@@ -1,3 +1,4 @@
+import * as vscode from 'vscode';
 import { BaseAIService, type AIResponse } from './baseAIService.js';
 import type { AIProvider } from '../../models/types.js';
 import { APIError } from '../../models/errors.js';
@@ -18,6 +19,8 @@ export class MinimaxService extends BaseAIService {
     }
 
     const url = `${MINIMAX_BASE_URL}/text/chatcompletion_v2`;
+    const output = vscode.window.createOutputChannel('AI Commit');
+    output.appendLine(`[MiniMax] URL: ${url}`);
 
     const response = await fetch(url, {
       method: 'POST',
@@ -36,17 +39,39 @@ export class MinimaxService extends BaseAIService {
       }),
     });
 
+    output.appendLine(`[MiniMax] Status: ${response.status}`);
+
     if (!response.ok) {
+      const errorText = await response.text();
+      output.appendLine(`[MiniMax] Error: ${errorText}`);
       throw new APIError(`MiniMax API error: ${response.statusText}`, response.status);
     }
 
-    const data = await response.json() as {
-      choices?: Array<{ message?: { content?: string } }>;
+    const rawData = await response.json();
+    output.appendLine(`[MiniMax] Raw response: ${JSON.stringify(rawData).substring(0, 500)}`);
+
+    // MiniMax uses a different response format
+    const data = rawData as {
+      choices?: Array<{ message?: { content?: string } } | { delta?: { content?: string } }>;
+      text?: string;
       usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
     };
 
+    // Try different response structures
+    let content = '';
+    const firstChoice = data.choices?.[0];
+    if (firstChoice && 'message' in firstChoice) {
+      content = firstChoice.message?.content || '';
+    } else if (firstChoice && 'delta' in firstChoice) {
+      content = firstChoice.delta?.content || '';
+    } else if (data.text) {
+      content = data.text;
+    }
+
+    output.appendLine(`[MiniMax] Extracted content: "${content}"`);
+
     return {
-      content: data.choices?.[0]?.message?.content || '',
+      content,
       usage: data.usage
         ? {
             promptTokens: data.usage.prompt_tokens || 0,

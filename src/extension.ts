@@ -50,6 +50,9 @@ async function saveApiKey(context: vscode.ExtensionContext, provider: AIProvider
 }
 
 async function generateCommitMessage(context: vscode.ExtensionContext, configService: ConfigService) {
+  const output = vscode.window.createOutputChannel('AI Commit');
+  output.appendLine('=== AI Commit started ===');
+
   const config = vscode.workspace.getConfiguration('ai-commit');
   const provider = config.get<AIProvider>('provider', 'openai');
   const format = config.get<CommitFormat>('format', 'conventional');
@@ -57,13 +60,18 @@ async function generateCommitMessage(context: vscode.ExtensionContext, configSer
   const stagedOnly = config.get<boolean>('stagedOnly', true);
   const includeBlame = config.get<boolean>('includeBlame', false);
 
+  output.appendLine(`Provider: ${provider}`);
+
   // Check if API key is configured, if not prompt for it
   const apiKey = await getApiKey(context, provider, configService);
+  output.appendLine(`API Key found: ${!!apiKey}`);
+
   if (!apiKey) {
     await promptSetApiKey(context);
     const newApiKey = await getApiKey(context, provider, configService);
     if (!newApiKey) {
-      return; // User cancelled
+      output.appendLine('User cancelled - no API key');
+      return;
     }
   }
 
@@ -78,6 +86,8 @@ async function generateCommitMessage(context: vscode.ExtensionContext, configSer
 
   // Get the current repository
   const repo = gitApi.repositories[0];
+  output.appendLine(`Repo found: ${!!repo}`);
+
   if (!repo) {
     vscode.window.showErrorMessage('No git repository found');
     return;
@@ -96,6 +106,7 @@ async function generateCommitMessage(context: vscode.ExtensionContext, configSer
 
         // Get diff using VS Code git API
         const diff = await getGitDiff(repo, stagedOnly);
+        output.appendLine(`Diff length: ${diff.full.length}`);
         progress.report({ message: 'Generating commit message...' });
 
         let blameInfos: Map<string, BlameInfo[]> | undefined;
@@ -113,27 +124,34 @@ async function generateCommitMessage(context: vscode.ExtensionContext, configSer
         }
 
         const baseUrl = configService.getBaseUrl(provider);
+        output.appendLine(`Base URL: ${baseUrl || 'default'}`);
 
         // Generate commit message
         const aiService = new AIService();
-        const message = await aiService.generateCommitMessage({
-          provider,
-          format,
-          language,
-          diff,
-          blameInfos,
-          apiKey: finalApiKey,
-          baseUrl,
-        });
+        let message: string;
+        try {
+          message = await aiService.generateCommitMessage({
+            provider,
+            format,
+            language,
+            diff,
+            blameInfos,
+            apiKey: finalApiKey,
+            baseUrl,
+          });
+        } catch (e: any) {
+          output.appendLine(`AI Error: ${e.message}`);
+          vscode.window.showErrorMessage(`AI Error: ${e.message}`);
+          return;
+        }
+
+        output.appendLine(`AI returned: "${message}"`);
+        output.appendLine('=== Done ===');
 
         progress.report({ message: 'Done!' });
 
         // Set the commit message in the Git input box
-        if (message) {
-          repo.inputBox.value = message;
-        } else {
-          vscode.window.showErrorMessage('Failed to generate commit message');
-        }
+        repo.inputBox.value = message;
       }
     );
   } catch (error) {
@@ -142,19 +160,17 @@ async function generateCommitMessage(context: vscode.ExtensionContext, configSer
 }
 
 async function getGitDiff(repo: any, stagedOnly: boolean): Promise<GitDiff> {
-  let staged = '';
-  let unstaged = '';
+  const repoPath = repo.rootUri.fsPath;
 
-  if (stagedOnly) {
-    staged = await repo.diff(true);
-  } else {
-    staged = await repo.diff(true);
-    unstaged = await repo.diff(false);
-  }
+  // Use VS Code Git API which returns Thenable<string>
+  const stagedResult = await Promise.resolve(repo.diff(true));
+  const unstagedResult = stagedOnly ? '' : await Promise.resolve(repo.diff(false));
 
-  const full = stagedOnly ? staged : `${staged}\n\n${unstaged}`;
-
-  return { staged, unstaged, full };
+  return {
+    staged: stagedResult,
+    unstaged: unstagedResult,
+    full: stagedOnly ? stagedResult : `${stagedResult}\n\n${unstagedResult}`
+  };
 }
 
 // Provider mapping for display

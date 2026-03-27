@@ -1,8 +1,8 @@
+import * as vscode from 'vscode';
 import type { AIProvider, AIProviderConfig, CommitFormat, Language, GitDiff, BlameInfo, CommitMessage } from '../../models/types.js';
 import { AIServiceFactory } from './aiServiceFactory.js';
 import { promptService } from '../prompt/promptService.js';
 import { formatCommitMessage } from '../../templates/index.js';
-import { logger } from '../../utils/logger.js';
 
 export interface GenerateCommitOptions {
   provider: AIProvider;
@@ -22,8 +22,6 @@ export class AIService {
   async generateCommitMessage(options: GenerateCommitOptions): Promise<string> {
     const { provider, format, language, diff, blameInfos, customInstructions, apiKey, baseUrl, model } = options;
 
-    logger.debug(`Generating commit message with ${provider}`);
-
     // Create AI service
     const aiService = this.serviceFactory.create({
       provider,
@@ -41,13 +39,17 @@ export class AIService {
       customInstructions,
     });
 
+    vscode.window.showInformationMessage(`Prompt built, diff length: ${diff.full.length}`);
+
     // Generate response
     const response = await aiService.generate(system, user);
 
-    logger.debug(`AI response: ${response.content}`);
+    vscode.window.showInformationMessage(`AI raw response: "${response.content}"`);
 
     // Parse and format commit message
     const parsedMessage = promptService.parseAIResponse(response.content, format);
+    vscode.window.showInformationMessage(`Parsed: type="${parsedMessage.type}", scope="${parsedMessage.scope}", subject="${parsedMessage.subject}"`);
+
     const formattedMessage = formatCommitMessage(parsedMessage, format);
 
     return formattedMessage;

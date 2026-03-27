@@ -98,21 +98,21 @@ async function generateCommitMessage(configService: ConfigService) {
 
         progress.report({ message: 'Done!' });
 
-        // Show the message and optionally commit
+        // Set the commit message in the Git input box
+        repo.inputBox.value = message;
+
+        // Show notification with options
         const selection = await vscode.window.showInformationMessage(
-          `Generated commit message:\n\n${message}`,
-          autoCommit ? 'Commit' : 'Copy & Close',
-          'Edit'
+          'Commit message filled in Git input box.',
+          'Copy',
+          'Commit Now'
         );
 
-        if (selection === 'Copy & Close') {
+        if (selection === 'Copy') {
           await vscode.env.clipboard.writeText(message);
-        } else if (selection === 'Commit') {
+        } else if (selection === 'Commit Now') {
           await repo.commit(message);
           vscode.window.showInformationMessage('Committed!');
-        } else if (selection === 'Edit') {
-          // Copy to clipboard for manual editing
-          await vscode.env.clipboard.writeText(message);
         }
       }
     );

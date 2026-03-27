@@ -2,6 +2,7 @@
   "name": "ai-commit",
   "version": "0.1.0",
   "description": "AI-powered commit message generator for VS Code",
+  "repository": "github:enneket/ai-commit",
   "categories": ["Other"],
   "activationEvents": [
     "onCommand:ai-commit.generate",

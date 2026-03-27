@@ -1,0 +1,14 @@
+.vscode/**
+.vscode-test/**
+src/**
+tests/**
+.gitignore
+tsconfig.json
+tsconfig.build.json
+vitest.config.ts
+package-lock.json
+*.test.ts
+docs/**
+.claude/**
+*.md
+!README.md
